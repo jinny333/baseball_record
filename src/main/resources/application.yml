@@ -53,3 +53,11 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+# JWT 발급/검증 설정.
+# secret은 HS256 서명에 사용되므로 최소 32바이트(256bit) 이상이어야 하며,
+# 운영 환경에서는 반드시 JWT_SECRET 환경변수로 override한다(DB_PASSWORD와 동일한 패턴).
+jwt:
+  secret: ${JWT_SECRET:dev-only-change-this-secret-key-minimum-32-bytes-long}
+  access-token-expire-ms: 1800000      # 30분
+  refresh-token-expire-ms: 1209600000  # 14일
