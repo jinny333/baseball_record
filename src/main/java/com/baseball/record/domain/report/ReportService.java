@@ -27,6 +27,7 @@ public class ReportService {
     public ReportResponse createReport(Long reporterId, ReportCreateRequest request) {
         Member reporter = memberRepository.findById(reporterId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        validateTargetExists(request.targetType(), request.targetId());
 
         Report report = Report.builder()
                 .reporter(reporter)
@@ -52,5 +53,12 @@ public class ReportService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.REPORT_NOT_FOUND));
         report.resolve();
         return ReportResponse.from(report);
+    }
+
+    // REVIEW 도메인이 아직 없어 REVIEW 타입은 존재 검증 없이 통과시킨다. REVIEW 도메인 추가 시 여기도 함께 검증할 것.
+    private void validateTargetExists(ReportTargetType targetType, Long targetId) {
+        if (targetType == ReportTargetType.USER && !memberRepository.existsById(targetId)) {
+            throw new BusinessException(ErrorCode.REPORT_TARGET_NOT_FOUND);
+        }
     }
 }

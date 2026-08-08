@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 public class JwtTokenProvider {
 
     private static final String CLAIM_ROLE = "role";
+    private static final String CLAIM_TYPE = "type";
+    private static final String TOKEN_TYPE_ACCESS = "access";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
 
     private final SecretKey key;
     private final long accessTokenExpireMs;
@@ -46,6 +49,10 @@ public class JwtTokenProvider {
         return parseClaims(token).get(CLAIM_ROLE, String.class);
     }
 
+    public boolean isAccessToken(String token) {
+        return TOKEN_TYPE_ACCESS.equals(parseClaims(token).get(CLAIM_TYPE, String.class));
+    }
+
     /**
      * 필터 등 "유효한가 아닌가"만 필요한 호출부용. 만료/서명 오류를 구분해야 하는 곳(재발급 로직)은
      * {@link #parseClaims(String)}을 직접 호출해 jjwt 예외를 잡아 상황별로 처리한다.
@@ -67,16 +74,17 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    private String generateToken(Member member, long expireMs, boolean includeRole) {
+    private String generateToken(Member member, long expireMs, boolean isAccessToken) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expireMs);
 
         JwtBuilder builder = Jwts.builder()
                 .subject(String.valueOf(member.getId()))
                 .issuedAt(now)
-                .expiration(expiry);
+                .expiration(expiry)
+                .claim(CLAIM_TYPE, isAccessToken ? TOKEN_TYPE_ACCESS : TOKEN_TYPE_REFRESH);
 
-        if (includeRole) {
+        if (isAccessToken) {
             builder.claim(CLAIM_ROLE, member.getRole().name());
         }
 

@@ -5,6 +5,7 @@ import com.baseball.record.domain.auth.dto.LogoutRequest;
 import com.baseball.record.domain.auth.dto.ReissueRequest;
 import com.baseball.record.domain.auth.dto.SignupRequest;
 import com.baseball.record.domain.auth.dto.TokenResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,7 +35,7 @@ public class AuthController {
 
     @PostMapping("/api/v1/users/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    public TokenResponse signup(@RequestBody SignupRequest request) {
+    public TokenResponse signup(@Valid @RequestBody SignupRequest request) {
         return authService.signup(request);
     }
 
