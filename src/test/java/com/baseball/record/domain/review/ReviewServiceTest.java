@@ -101,6 +101,18 @@ class ReviewServiceTest {
     }
 
     @Test
+    void 블라인드된_리뷰를_상세_조회하면_예외가_발생한다() {
+        Review review = createReview(createRecord(createMember(1L)));
+        review.blind();
+        given(reviewRepository.findById(100L)).willReturn(Optional.of(review));
+
+        assertThatThrownBy(() -> reviewService.getReview(100L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.REVIEW_NOT_FOUND);
+    }
+
+    @Test
     void 본인_리뷰를_수정하면_내용과_키워드가_바뀐다() {
         Review review = createReview(createRecord(createMember(1L)));
         given(reviewRepository.findByIdAndMember_Id(100L, 1L)).willReturn(Optional.of(review));

@@ -11,6 +11,8 @@ public enum ErrorCode {
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 다이어리입니다."),
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 리뷰입니다."),
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 다이어리에 작성된 리뷰가 있습니다."),
+    RECORD_HAS_REVIEW(HttpStatus.CONFLICT, "리뷰가 작성된 다이어리는 삭제할 수 없습니다."),
+    INVALID_LIMIT(HttpStatus.BAD_REQUEST, "limit은 1 이상이어야 합니다."),
     MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 사용자입니다."),
     UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 provider입니다."),
     SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "소셜 계정의 이메일 제공에 동의해야 가입할 수 있습니다."),

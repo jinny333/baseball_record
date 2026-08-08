@@ -12,6 +12,7 @@ import com.baseball.record.domain.member.MemberRepository;
 import com.baseball.record.domain.member.Provider;
 import com.baseball.record.domain.record.dto.RecordCreateRequest;
 import com.baseball.record.domain.record.dto.RecordUpdateRequest;
+import com.baseball.record.domain.review.ReviewRepository;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
 import java.time.LocalDate;
@@ -32,6 +33,9 @@ class RecordServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private ReviewRepository reviewRepository;
 
     @InjectMocks
     private RecordService recordService;
@@ -107,6 +111,7 @@ class RecordServiceTest {
     void 본인_다이어리를_삭제한다() {
         Record record = createRecord(createMember(1L));
         given(recordRepository.findByIdAndMember_Id(10L, 1L)).willReturn(Optional.of(record));
+        given(reviewRepository.existsByRecord_Id(record.getId())).willReturn(false);
 
         recordService.deleteRecord(1L, 10L);
 
@@ -121,6 +126,19 @@ class RecordServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.RECORD_NOT_FOUND);
+        verify(recordRepository, never()).delete(any());
+    }
+
+    @Test
+    void 리뷰가_달린_다이어리를_삭제하면_409_예외가_발생한다() {
+        Record record = createRecord(createMember(1L));
+        given(recordRepository.findByIdAndMember_Id(10L, 1L)).willReturn(Optional.of(record));
+        given(reviewRepository.existsByRecord_Id(record.getId())).willReturn(true);
+
+        assertThatThrownBy(() -> recordService.deleteRecord(1L, 10L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.RECORD_HAS_REVIEW);
         verify(recordRepository, never()).delete(any());
     }
 

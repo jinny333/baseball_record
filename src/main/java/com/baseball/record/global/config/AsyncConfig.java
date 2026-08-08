@@ -1,6 +1,7 @@
 package com.baseball.record.global.config;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
@@ -23,6 +24,8 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setMaxPoolSize(4);
         executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("review-analysis-");
+        // 큐가 가득 차면 작업을 버리는 대신(AbortPolicy) 제출한 스레드가 직접 실행하게 해 keywordVector 계산 유실을 막는다.
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
     }

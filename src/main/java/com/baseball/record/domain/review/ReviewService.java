@@ -62,6 +62,7 @@ public class ReviewService {
 
     public ReviewResponse getReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
+                .filter(r -> r.getStatus() == ReviewStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
         return ReviewResponse.from(review);
     }

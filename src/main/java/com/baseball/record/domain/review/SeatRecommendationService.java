@@ -1,6 +1,8 @@
 package com.baseball.record.domain.review;
 
 import com.baseball.record.domain.review.dto.SeatRecommendationResponse;
+import com.baseball.record.global.error.BusinessException;
+import com.baseball.record.global.error.ErrorCode;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +36,9 @@ public class SeatRecommendationService {
     }
 
     public List<SeatRecommendationResponse> recommend(String stadium, List<String> keywords, Integer limit) {
+        if (limit != null && limit <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_LIMIT);
+        }
         Map<String, Long> queryVector = analyzeQueryVector(keywords);
         if (queryVector.isEmpty()) {
             return List.of();

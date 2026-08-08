@@ -5,6 +5,7 @@ import com.baseball.record.domain.member.MemberRepository;
 import com.baseball.record.domain.record.dto.RecordCreateRequest;
 import com.baseball.record.domain.record.dto.RecordResponse;
 import com.baseball.record.domain.record.dto.RecordUpdateRequest;
+import com.baseball.record.domain.review.ReviewRepository;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
 import org.springframework.data.domain.Page;
@@ -18,10 +19,13 @@ public class RecordService {
 
     private final RecordRepository recordRepository;
     private final MemberRepository memberRepository;
+    private final ReviewRepository reviewRepository;
 
-    public RecordService(RecordRepository recordRepository, MemberRepository memberRepository) {
+    public RecordService(RecordRepository recordRepository, MemberRepository memberRepository,
+                          ReviewRepository reviewRepository) {
         this.recordRepository = recordRepository;
         this.memberRepository = memberRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -67,7 +71,11 @@ public class RecordService {
 
     @Transactional
     public void deleteRecord(Long memberId, Long recordId) {
-        recordRepository.delete(getOwnedRecord(memberId, recordId));
+        Record record = getOwnedRecord(memberId, recordId);
+        if (reviewRepository.existsByRecord_Id(record.getId())) {
+            throw new BusinessException(ErrorCode.RECORD_HAS_REVIEW);
+        }
+        recordRepository.delete(record);
     }
 
     // 소유권 검증을 쿼리 레벨에서 한 번에 처리해, "존재하지 않음"과 "남의 글"을 모두 RECORD_NOT_FOUND(404)로 통일한다.

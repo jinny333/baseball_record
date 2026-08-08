@@ -1,12 +1,15 @@
 package com.baseball.record.domain.review;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.baseball.record.domain.review.dto.SeatRecommendationResponse;
+import com.baseball.record.global.error.BusinessException;
+import com.baseball.record.global.error.ErrorCode;
 import java.util.List;
 import java.util.Map;
 import kr.co.shineware.nlp.komoran.core.Komoran;
@@ -59,6 +62,16 @@ class SeatRecommendationServiceTest {
 
         assertThat(responses).isEmpty();
         verifyNoInteractions(reviewRepository);
+    }
+
+    @Test
+    void limit이_0이하이면_예외가_발생한다() {
+        assertThatThrownBy(() -> seatRecommendationService.recommend(null, List.of("응원가"), -1))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_LIMIT);
+        verifyNoInteractions(reviewRepository);
+        verifyNoInteractions(komoran);
     }
 
     private Review reviewWithVector(Long id, String stadium, String section, String block, Map<String, Long> vector) {
