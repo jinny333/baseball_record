@@ -2,13 +2,13 @@ package com.baseball.record.domain.report;
 
 import com.baseball.record.domain.report.dto.ReportCreateRequest;
 import com.baseball.record.domain.report.dto.ReportResponse;
+import com.baseball.record.global.security.CurrentMemberId;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,7 +29,7 @@ public class ReportController {
 
     @PostMapping("/api/v1/reports")
     @ResponseStatus(HttpStatus.CREATED)
-    public ReportResponse createReport(@AuthenticationPrincipal Long memberId,
+    public ReportResponse createReport(@CurrentMemberId Long memberId,
                                         @Valid @RequestBody ReportCreateRequest request) {
         return reportService.createReport(memberId, request);
     }

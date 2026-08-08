@@ -4,6 +4,7 @@ import com.baseball.record.domain.member.Member;
 import com.baseball.record.domain.member.MemberRepository;
 import com.baseball.record.domain.report.dto.ReportCreateRequest;
 import com.baseball.record.domain.report.dto.ReportResponse;
+import com.baseball.record.domain.review.ReviewRepository;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
 import org.springframework.data.domain.Page;
@@ -17,10 +18,13 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
+    private final ReviewRepository reviewRepository;
 
-    public ReportService(ReportRepository reportRepository, MemberRepository memberRepository) {
+    public ReportService(ReportRepository reportRepository, MemberRepository memberRepository,
+                          ReviewRepository reviewRepository) {
         this.reportRepository = reportRepository;
         this.memberRepository = memberRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -55,9 +59,12 @@ public class ReportService {
         return ReportResponse.from(report);
     }
 
-    // REVIEW 도메인이 아직 없어 REVIEW 타입은 존재 검증 없이 통과시킨다. REVIEW 도메인 추가 시 여기도 함께 검증할 것.
     private void validateTargetExists(ReportTargetType targetType, Long targetId) {
-        if (targetType == ReportTargetType.USER && !memberRepository.existsById(targetId)) {
+        boolean exists = switch (targetType) {
+            case USER -> memberRepository.existsById(targetId);
+            case REVIEW -> reviewRepository.existsById(targetId);
+        };
+        if (!exists) {
             throw new BusinessException(ErrorCode.REPORT_TARGET_NOT_FOUND);
         }
     }

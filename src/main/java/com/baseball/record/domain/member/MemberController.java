@@ -3,13 +3,13 @@ package com.baseball.record.domain.member;
 import com.baseball.record.domain.member.dto.MemberResponse;
 import com.baseball.record.domain.member.dto.MemberStatusUpdateRequest;
 import com.baseball.record.domain.member.dto.MemberUpdateRequest;
+import com.baseball.record.global.security.CurrentMemberId;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,19 +28,19 @@ public class MemberController {
     }
 
     @GetMapping("/api/v1/users/me")
-    public MemberResponse getMe(@AuthenticationPrincipal Long memberId) {
+    public MemberResponse getMe(@CurrentMemberId Long memberId) {
         return memberService.getMyProfile(memberId);
     }
 
     @PatchMapping("/api/v1/users/me")
-    public MemberResponse updateMe(@AuthenticationPrincipal Long memberId,
+    public MemberResponse updateMe(@CurrentMemberId Long memberId,
                                     @Valid @RequestBody MemberUpdateRequest request) {
         return memberService.updateProfile(memberId, request);
     }
 
     @DeleteMapping("/api/v1/users/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void withdraw(@AuthenticationPrincipal Long memberId) {
+    public void withdraw(@CurrentMemberId Long memberId) {
         memberService.withdraw(memberId);
     }
 

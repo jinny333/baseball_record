@@ -5,10 +5,10 @@ import com.baseball.record.domain.auth.dto.LogoutRequest;
 import com.baseball.record.domain.auth.dto.ReissueRequest;
 import com.baseball.record.domain.auth.dto.SignupRequest;
 import com.baseball.record.domain.auth.dto.TokenResponse;
+import com.baseball.record.global.security.CurrentMemberId;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -46,7 +46,7 @@ public class AuthController {
 
     @PostMapping("/api/v1/auth/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@AuthenticationPrincipal Long memberId, @RequestBody LogoutRequest request) {
+    public void logout(@CurrentMemberId Long memberId, @RequestBody LogoutRequest request) {
         authService.logout(memberId, request.refreshToken());
     }
 }

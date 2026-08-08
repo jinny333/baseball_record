@@ -11,6 +11,7 @@ import com.baseball.record.domain.member.Member;
 import com.baseball.record.domain.member.MemberRepository;
 import com.baseball.record.domain.member.Provider;
 import com.baseball.record.domain.report.dto.ReportCreateRequest;
+import com.baseball.record.domain.review.ReviewRepository;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
 import java.util.Optional;
@@ -31,6 +32,9 @@ class ReportServiceTest {
     @Mock
     private MemberRepository memberRepository;
 
+    @Mock
+    private ReviewRepository reviewRepository;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -38,6 +42,7 @@ class ReportServiceTest {
     void 신고를_접수하면_PENDING_상태로_생성된다() {
         Member reporter = createMember(1L);
         given(memberRepository.findById(1L)).willReturn(Optional.of(reporter));
+        given(reviewRepository.existsById(100L)).willReturn(true);
 
         var response = reportService.createReport(1L,
                 new ReportCreateRequest(ReportTargetType.REVIEW, 100L, "부적절한 사진"));
@@ -56,6 +61,20 @@ class ReportServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.MEMBER_NOT_FOUND);
+        verify(reportRepository, never()).save(any());
+    }
+
+    @Test
+    void 존재하지_않는_리뷰를_신고하면_예외가_발생한다() {
+        Member reporter = createMember(1L);
+        given(memberRepository.findById(1L)).willReturn(Optional.of(reporter));
+        given(reviewRepository.existsById(999L)).willReturn(false);
+
+        assertThatThrownBy(() -> reportService.createReport(1L,
+                new ReportCreateRequest(ReportTargetType.REVIEW, 999L, "부적절한 사진")))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.REPORT_TARGET_NOT_FOUND);
         verify(reportRepository, never()).save(any());
     }
 

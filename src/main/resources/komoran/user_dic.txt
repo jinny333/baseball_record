@@ -1,0 +1,5 @@
+무적엘지	NNP
+오지환	NNP
+문보경	NNP
+우취	NNG
+끝내기	NNG
