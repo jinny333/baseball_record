@@ -3,8 +3,10 @@ package com.baseball.record.domain.member;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.baseball.record.domain.auth.RefreshTokenRepository;
 import com.baseball.record.domain.member.dto.MemberUpdateRequest;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
@@ -21,6 +23,9 @@ class MemberServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks
     private MemberService memberService;
@@ -59,7 +64,7 @@ class MemberServiceTest {
     }
 
     @Test
-    void 탈퇴하면_상태가_INACTIVE로_바뀐다() {
+    void 탈퇴하면_상태가_INACTIVE로_바뀌고_refresh_token이_전부_폐기된다() {
         Member member = createMember(1L, "치즈볼", "LG");
         given(memberRepository.findById(1L)).willReturn(Optional.of(member));
 
@@ -67,10 +72,11 @@ class MemberServiceTest {
 
         assertThat(member.getStatus()).isEqualTo(MemberStatus.INACTIVE);
         verify(memberRepository).findById(1L);
+        verify(refreshTokenRepository).deleteByMember(member);
     }
 
     @Test
-    void 관리자가_회원_상태를_SUSPENDED로_변경한다() {
+    void 관리자가_회원_상태를_SUSPENDED로_변경하면_refresh_token이_전부_폐기된다() {
         Member member = createMember(1L, "치즈볼", "LG");
         given(memberRepository.findById(1L)).willReturn(Optional.of(member));
 
@@ -78,6 +84,17 @@ class MemberServiceTest {
 
         assertThat(response.status()).isEqualTo(MemberStatus.SUSPENDED);
         assertThat(member.getStatus()).isEqualTo(MemberStatus.SUSPENDED);
+        verify(refreshTokenRepository).deleteByMember(member);
+    }
+
+    @Test
+    void 관리자가_회원_상태를_ACTIVE로_복구하면_refresh_token을_건드리지_않는다() {
+        Member member = createMember(1L, "치즈볼", "LG");
+        given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+
+        memberService.updateStatus(1L, MemberStatus.ACTIVE);
+
+        verify(refreshTokenRepository, never()).deleteByMember(member);
     }
 
     private Member createMember(Long id, String nickname, String favoriteTeam) {

@@ -1,5 +1,6 @@
 package com.baseball.record.domain.member;
 
+import com.baseball.record.domain.auth.RefreshTokenRepository;
 import com.baseball.record.domain.member.dto.MemberResponse;
 import com.baseball.record.domain.member.dto.MemberUpdateRequest;
 import com.baseball.record.global.error.BusinessException;
@@ -14,9 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    public MemberService(MemberRepository memberRepository) {
+    public MemberService(MemberRepository memberRepository, RefreshTokenRepository refreshTokenRepository) {
         this.memberRepository = memberRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     public MemberResponse getMyProfile(Long memberId) {
@@ -38,6 +41,7 @@ public class MemberService {
     public void withdraw(Long memberId) {
         Member member = findMember(memberId);
         member.changeStatus(MemberStatus.INACTIVE);
+        refreshTokenRepository.deleteByMember(member);
     }
 
     public Page<MemberResponse> getMembers(Pageable pageable) {
@@ -47,11 +51,16 @@ public class MemberService {
     /**
      * (관리자 전용) 신고 누적 등의 사유로 악성 유저를 SUSPENDED로 전환하거나,
      * 오판정된 계정을 다시 ACTIVE로 복구하는 등 회원 상태를 직접 제어한다.
+     * ACTIVE가 아닌 상태로 전환할 때는 refresh token을 모두 폐기해, 이미 로그인된 세션이
+     * /auth/reissue로 계속 새 access token을 받아가는 것을 막는다.
      */
     @Transactional
     public MemberResponse updateStatus(Long memberId, MemberStatus status) {
         Member member = findMember(memberId);
         member.changeStatus(status);
+        if (status != MemberStatus.ACTIVE) {
+            refreshTokenRepository.deleteByMember(member);
+        }
         return MemberResponse.from(member);
     }
 

@@ -1,5 +1,6 @@
 package com.baseball.record.global.security;
 
+import com.baseball.record.domain.member.MemberRepository;
 import com.baseball.record.global.error.ErrorResponse;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,10 +31,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final MemberRepository memberRepository;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider, MemberRepository memberRepository,
+                           ObjectMapper objectMapper) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.memberRepository = memberRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -51,7 +55,7 @@ public class SecurityConfig {
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(this::handleAuthenticationEntryPoint)
                         .accessDeniedHandler(this::handleAccessDenied))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, memberRepository), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
