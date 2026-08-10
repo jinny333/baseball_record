@@ -1,8 +1,12 @@
 package com.baseball.record.domain.record;
 
+import com.baseball.record.domain.record.dto.OcrRequest;
+import com.baseball.record.domain.record.dto.OcrResponse;
 import com.baseball.record.domain.record.dto.RecordCreateRequest;
 import com.baseball.record.domain.record.dto.RecordResponse;
+import com.baseball.record.domain.record.dto.RecordStatsResponse;
 import com.baseball.record.domain.record.dto.RecordUpdateRequest;
+import com.baseball.record.domain.record.ocr.TicketOcrService;
 import com.baseball.record.global.security.CurrentMemberId;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -23,9 +27,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecordController {
 
     private final RecordService recordService;
+    private final TicketOcrService ticketOcrService;
 
-    public RecordController(RecordService recordService) {
+    public RecordController(RecordService recordService, TicketOcrService ticketOcrService) {
         this.recordService = recordService;
+        this.ticketOcrService = ticketOcrService;
+    }
+
+    @PostMapping("/api/v1/diaries/ocr")
+    public OcrResponse parseTicketImage(@Valid @RequestBody OcrRequest request) {
+        return ticketOcrService.parseTicket(request);
     }
 
     @PostMapping("/api/v1/records")
@@ -40,6 +51,12 @@ public class RecordController {
             @CurrentMemberId Long memberId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return recordService.getRecords(memberId, pageable);
+    }
+
+    // /records/{recordId}(변수 경로)보다 먼저 매칭되도록 Spring이 리터럴 경로를 더 구체적인 패턴으로 우선 처리한다.
+    @GetMapping("/api/v1/records/stats")
+    public RecordStatsResponse getStats(@CurrentMemberId Long memberId) {
+        return recordService.getStats(memberId);
     }
 
     @GetMapping("/api/v1/records/{recordId}")

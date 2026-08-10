@@ -13,6 +13,8 @@ public enum ErrorCode {
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 해당 다이어리에 작성된 리뷰가 있습니다."),
     RECORD_HAS_REVIEW(HttpStatus.CONFLICT, "리뷰가 작성된 다이어리는 삭제할 수 없습니다."),
     INVALID_LIMIT(HttpStatus.BAD_REQUEST, "limit은 1 이상이어야 합니다."),
+    OCR_PROVIDER_ERROR(HttpStatus.BAD_GATEWAY, "티켓 이미지 인식 중 오류가 발생했습니다. 직접 입력해주세요."),
+    OCR_TEXT_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "이미지에서 텍스트를 인식하지 못했습니다. 직접 입력해주세요."),
     MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 사용자입니다."),
     UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 provider입니다."),
     SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "소셜 계정의 이메일 제공에 동의해야 가입할 수 있습니다."),

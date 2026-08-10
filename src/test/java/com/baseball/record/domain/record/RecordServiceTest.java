@@ -2,6 +2,7 @@ package com.baseball.record.domain.record;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -16,6 +17,7 @@ import com.baseball.record.domain.review.ReviewRepository;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -142,6 +144,47 @@ class RecordServiceTest {
         verify(recordRepository, never()).delete(any());
     }
 
+    @Test
+    void 승률_통계를_상대팀별_구장별로_집계한다() {
+        Member member = createMember(1L);
+        List<Record> records = List.of(
+                createRecord(member, "잠실", "LG", "두산", "LG", MatchResult.WIN),
+                createRecord(member, "잠실", "LG", "두산", "LG", MatchResult.LOSE),
+                createRecord(member, "잠실", "LG", "KT", "LG", MatchResult.WIN),
+                createRecord(member, "수원", "KT", "LG", "LG", MatchResult.DRAW));
+        given(recordRepository.findAllByMember_IdAndMatchResultNot(1L, MatchResult.CANCEL)).willReturn(records);
+
+        var response = recordService.getStats(1L);
+
+        assertThat(response.totalWin()).isEqualTo(2);
+        assertThat(response.totalLose()).isEqualTo(1);
+        assertThat(response.totalDraw()).isEqualTo(1);
+        assertThat(response.totalWinRate()).isEqualTo(66.7);
+
+        assertThat(response.byOpponentTeam())
+                .extracting("opponentTeam", "win", "lose", "draw", "winRate")
+                .containsExactlyInAnyOrder(
+                        tuple("두산", 1, 1, 0, 50.0),
+                        tuple("KT", 1, 0, 1, 100.0));
+
+        assertThat(response.byStadium())
+                .extracting("stadium", "win", "lose", "draw", "winRate")
+                .containsExactly(
+                        tuple("잠실", 2, 1, 0, 66.7),
+                        tuple("수원", 0, 0, 1, 0.0));
+    }
+
+    @Test
+    void 통계_조회시_취소된_경기는_제외하도록_조회한다() {
+        given(recordRepository.findAllByMember_IdAndMatchResultNot(1L, MatchResult.CANCEL)).willReturn(List.of());
+
+        var response = recordService.getStats(1L);
+
+        assertThat(response.totalWin()).isZero();
+        assertThat(response.totalWinRate()).isZero();
+        verify(recordRepository).findAllByMember_IdAndMatchResultNot(1L, MatchResult.CANCEL);
+    }
+
     private Member createMember(Long id) {
         Member member = Member.builder()
                 .provider(Provider.KAKAO)
@@ -154,14 +197,19 @@ class RecordServiceTest {
     }
 
     private Record createRecord(Member member) {
+        return createRecord(member, "잠실", "LG", "두산", "LG", MatchResult.WIN);
+    }
+
+    private Record createRecord(Member member, String stadium, String homeTeam, String awayTeam,
+                                 String myTeam, MatchResult matchResult) {
         return Record.builder()
                 .member(member)
                 .matchDate(LocalDate.of(2026, 8, 7))
-                .stadium("잠실")
-                .homeTeam("LG")
-                .awayTeam("두산")
-                .myTeam("LG")
-                .matchResult(MatchResult.WIN)
+                .stadium(stadium)
+                .homeTeam(homeTeam)
+                .awayTeam(awayTeam)
+                .myTeam(myTeam)
+                .matchResult(matchResult)
                 .diaryComment("즐거운 직관")
                 .build();
     }

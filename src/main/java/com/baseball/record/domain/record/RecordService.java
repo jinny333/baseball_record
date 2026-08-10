@@ -4,10 +4,17 @@ import com.baseball.record.domain.member.Member;
 import com.baseball.record.domain.member.MemberRepository;
 import com.baseball.record.domain.record.dto.RecordCreateRequest;
 import com.baseball.record.domain.record.dto.RecordResponse;
+import com.baseball.record.domain.record.dto.RecordStatsResponse;
 import com.baseball.record.domain.record.dto.RecordUpdateRequest;
+import com.baseball.record.domain.record.dto.StadiumStatResponse;
+import com.baseball.record.domain.record.dto.TeamStatResponse;
 import com.baseball.record.domain.review.ReviewRepository;
 import com.baseball.record.global.error.BusinessException;
 import com.baseball.record.global.error.ErrorCode;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -62,6 +69,38 @@ public class RecordService {
         return RecordResponse.from(getOwnedRecord(memberId, recordId));
     }
 
+    // 취소 경기를 뺀 나머지를 상대팀별/구장별로 묶어 승/패/무 카운트와 승률(%)을 계산한다.
+    // SeatRecommendationService와 동일하게, 레포지토리는 평탄한 목록만 반환하고
+    // 그룹핑·집계는 서비스 계층에서 스트림으로 처리한다.
+    public RecordStatsResponse getStats(Long memberId) {
+        List<Record> records = recordRepository.findAllByMember_IdAndMatchResultNot(memberId, MatchResult.CANCEL);
+
+        List<TeamStatResponse> byOpponentTeam = records.stream()
+                .collect(Collectors.groupingBy(this::opponentTeam))
+                .entrySet().stream()
+                .map(entry -> toTeamStat(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparingInt((TeamStatResponse stat) -> stat.win() + stat.lose() + stat.draw())
+                        .reversed())
+                .toList();
+
+        List<StadiumStatResponse> byStadium = records.stream()
+                .collect(Collectors.groupingBy(Record::getStadium))
+                .entrySet().stream()
+                .map(entry -> toStadiumStat(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparingInt((StadiumStatResponse stat) -> stat.win() + stat.lose() + stat.draw())
+                        .reversed())
+                .toList();
+
+        Map<MatchResult, Long> totalCounts = countByResult(records);
+        long totalWin = totalCounts.getOrDefault(MatchResult.WIN, 0L);
+        long totalLose = totalCounts.getOrDefault(MatchResult.LOSE, 0L);
+        long totalDraw = totalCounts.getOrDefault(MatchResult.DRAW, 0L);
+
+        return new RecordStatsResponse(
+                (int) totalWin, (int) totalLose, (int) totalDraw, winRate(totalWin, totalLose),
+                byOpponentTeam, byStadium);
+    }
+
     @Transactional
     public RecordResponse updateRecord(Long memberId, Long recordId, RecordUpdateRequest request) {
         Record record = getOwnedRecord(memberId, recordId);
@@ -83,5 +122,39 @@ public class RecordService {
     private Record getOwnedRecord(Long memberId, Long recordId) {
         return recordRepository.findByIdAndMember_Id(recordId, memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECORD_NOT_FOUND));
+    }
+
+    // 홈/원정 중 내 응원팀이 아닌 쪽을 상대팀으로 본다.
+    private String opponentTeam(Record record) {
+        return record.getMyTeam().equals(record.getHomeTeam()) ? record.getAwayTeam() : record.getHomeTeam();
+    }
+
+    private TeamStatResponse toTeamStat(String opponentTeam, List<Record> records) {
+        Map<MatchResult, Long> counts = countByResult(records);
+        long win = counts.getOrDefault(MatchResult.WIN, 0L);
+        long lose = counts.getOrDefault(MatchResult.LOSE, 0L);
+        long draw = counts.getOrDefault(MatchResult.DRAW, 0L);
+        return new TeamStatResponse(opponentTeam, (int) win, (int) lose, (int) draw, winRate(win, lose));
+    }
+
+    private StadiumStatResponse toStadiumStat(String stadium, List<Record> records) {
+        Map<MatchResult, Long> counts = countByResult(records);
+        long win = counts.getOrDefault(MatchResult.WIN, 0L);
+        long lose = counts.getOrDefault(MatchResult.LOSE, 0L);
+        long draw = counts.getOrDefault(MatchResult.DRAW, 0L);
+        return new StadiumStatResponse(stadium, (int) win, (int) lose, (int) draw, winRate(win, lose));
+    }
+
+    private Map<MatchResult, Long> countByResult(List<Record> records) {
+        return records.stream().collect(Collectors.groupingBy(Record::getMatchResult, Collectors.counting()));
+    }
+
+    // 무승부는 분모에서 제외하는 통상적인 야구 승률 계산식(승 / (승+패)). 소수점 첫째 자리까지 반올림한 퍼센트.
+    private double winRate(long win, long lose) {
+        long decisiveGames = win + lose;
+        if (decisiveGames == 0) {
+            return 0.0;
+        }
+        return Math.round((double) win / decisiveGames * 1000) / 10.0;
     }
 }
