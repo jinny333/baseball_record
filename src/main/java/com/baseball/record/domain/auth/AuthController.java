@@ -40,13 +40,13 @@ public class AuthController {
     }
 
     @PostMapping("/api/v1/auth/reissue")
-    public ResponseEntity<TokenResponse> reissue(@RequestBody ReissueRequest request) {
+    public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody ReissueRequest request) {
         return ResponseEntity.ok(authService.reissue(request));
     }
 
     @PostMapping("/api/v1/auth/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@CurrentMemberId Long memberId, @RequestBody LogoutRequest request) {
+    public void logout(@CurrentMemberId Long memberId, @Valid @RequestBody LogoutRequest request) {
         authService.logout(memberId, request.refreshToken());
     }
 }

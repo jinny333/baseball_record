@@ -45,20 +45,31 @@ public class TicketTextParser {
             Pattern.DOTALL);
 
     // 포맷 B(인터파크 등): "105구역 4블록 12열 7번" — 라벨이 값 뒤에 붙는 스타일.
+    // 값과 라벨 사이에 공백이 있는 "105 구역 4 블록 12 열 7 번" 형태도 함께 허용한다.
     private static final Pattern SUFFIX_SEAT_PATTERN =
-            Pattern.compile("(\\S+?)구역\\s*(\\S+?)블록\\s*(\\S+?)열\\s*(\\S+?)번");
+            Pattern.compile("(\\S+?)\\s*구역\\s*(\\S+?)\\s*블록\\s*(\\S+?)\\s*열\\s*(\\S+?)\\s*번");
 
-    // 포맷 C(영문 라벨을 쓰는 예매처): "Section 105 Block 4 Row 12 Seat 7"
+    // 포맷 C(영문 라벨을 쓰는 예매처): "Section 105 Block 4 Row 12 Seat 7".
+    // Sec/Blk 같은 축약 라벨과 쉼표로 구분된 "Section: 105, Block: 4, ..." 형태도 허용한다.
     private static final Pattern ENGLISH_SEAT_PATTERN = Pattern.compile(
-            "Section\\s*[:：]?\\s*(\\S+?)\\s*Block\\s*[:：]?\\s*(\\S+?)\\s*Row\\s*[:：]?\\s*(\\S+?)\\s*Seat\\s*[:：]?\\s*(\\S+)",
+            "(?:Section|Sec)\\.?\\s*[:：]?\\s*(\\S+?)[\\s,]*(?:Block|Blk)\\.?\\s*[:：]?\\s*(\\S+?)[\\s,]*"
+                    + "Row\\s*[:：]?\\s*(\\S+?)[\\s,]*Seat\\s*[:：]?\\s*(\\S+)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     // 포맷 D(구단 자체 앱 등): 구역 라벨 없이 "H2블록 5열 12번"만 있는 경우 — 구역은 비워둔다.
     private static final Pattern BLOCK_ONLY_PATTERN =
-            Pattern.compile("(\\S+?)블록\\s*(\\S+?)열\\s*(\\S+?)번");
+            Pattern.compile("(\\S+?)\\s*블록\\s*(\\S+?)\\s*열\\s*(\\S+?)\\s*번");
+
+    // 포맷 E: 영문 라벨이지만 구역(Section) 없이 "Block 4 Row 12 Seat 7"만 있는 경우.
+    private static final Pattern ENGLISH_BLOCK_ONLY_PATTERN = Pattern.compile(
+            "(?:Block|Blk)\\.?\\s*[:：]?\\s*(\\S+?)[\\s,]*Row\\s*[:：]?\\s*(\\S+?)[\\s,]*Seat\\s*[:：]?\\s*(\\S+)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private static final List<Pattern> SEAT_PATTERNS_WITH_SECTION =
             List.of(LABELED_SEAT_PATTERN, SUFFIX_SEAT_PATTERN, ENGLISH_SEAT_PATTERN);
+
+    private static final List<Pattern> SEAT_PATTERNS_WITHOUT_SECTION =
+            List.of(BLOCK_ONLY_PATTERN, ENGLISH_BLOCK_ONLY_PATTERN);
 
     public OcrResponse parse(String rawText) {
         String text = rawText == null ? "" : rawText.trim();
@@ -100,9 +111,11 @@ public class TicketTextParser {
             }
         }
 
-        Matcher matcher = BLOCK_ONLY_PATTERN.matcher(text);
-        if (matcher.find()) {
-            return new Seat(null, matcher.group(1), matcher.group(2), matcher.group(3));
+        for (Pattern pattern : SEAT_PATTERNS_WITHOUT_SECTION) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return new Seat(null, matcher.group(1), matcher.group(2), matcher.group(3));
+            }
         }
 
         return new Seat(null, null, null, null);

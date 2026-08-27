@@ -88,6 +88,42 @@ class TicketTextParserTest {
     }
 
     @Test
+    void 값과_라벨_사이에_공백이_있는_인터파크_포맷도_파싱한다() {
+        String rawText = "고척스카이돔 2026-08-10 105 구역 4 블록 12 열 7 번";
+
+        OcrResponse response = ticketTextParser.parse(rawText);
+
+        assertThat(response.section()).isEqualTo("105");
+        assertThat(response.block()).isEqualTo("4");
+        assertThat(response.rowNum()).isEqualTo("12");
+        assertThat(response.seatNum()).isEqualTo("7");
+    }
+
+    @Test
+    void 구역_라벨이_없는_영문_포맷을_파싱한다() {
+        String rawText = "잠실야구장 2026.08.10 Block: 4 Row: 12 Seat: 7";
+
+        OcrResponse response = ticketTextParser.parse(rawText);
+
+        assertThat(response.section()).isNull();
+        assertThat(response.block()).isEqualTo("4");
+        assertThat(response.rowNum()).isEqualTo("12");
+        assertThat(response.seatNum()).isEqualTo("7");
+    }
+
+    @Test
+    void 축약_영문_라벨과_쉼표_구분자_포맷을_파싱한다() {
+        String rawText = "Sec: 105, Blk: 4, Row: 12, Seat: 7";
+
+        OcrResponse response = ticketTextParser.parse(rawText);
+
+        assertThat(response.section()).isEqualTo("105");
+        assertThat(response.block()).isEqualTo("4");
+        assertThat(response.rowNum()).isEqualTo("12");
+        assertThat(response.seatNum()).isEqualTo("7");
+    }
+
+    @Test
     void 구장과_날짜만_인식되고_좌석은_실패해도_수동입력이_필요하지_않다() {
         String rawText = "잠실야구장 2026.08.10 좌석 정보 인식 실패";
 
