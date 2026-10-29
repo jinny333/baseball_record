@@ -37,6 +37,10 @@ MySQL이 `localhost:3306`에 떠 있어야 하며(DB `baseball_record`), 아래 
 ./gradlew build -x test
 ```
 
+## API 문서 (Swagger)
+
+서버 실행 후 `http://localhost:8080/swagger-ui/index.html` 에서 전체 API 스펙 확인 및 테스트 가능. 인증이 필요한 API는 `/api/v1/auth/login`으로 발급받은 Access Token을 우측 상단 `Authorize` 버튼에 `Bearer <token>` 형식으로 넣으면 된다.
+
 ## Docker
 
 ```bash
